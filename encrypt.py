@@ -94,7 +94,7 @@ def print_header():
     )
     print(
         f"{MUTED}Multi-layer AES + ChaCha20 protection · Use -e to encrypt,"
-        f" -d to decrypt"
+        f" -d to decrypt · or run without flags for interactive mode"
     )
     print_divider(Fore.MAGENTA)
     print()
@@ -229,7 +229,7 @@ def encrypt_file(input_path):
         )
         full_data = fake_header + final_payload
 
-        filename = os.path.basename(input_path) + '.enc'
+        filename = os.path.basename(input_path) + '.femboycrypt'
         output_path = os.path.join('encrypted', filename)
         with open(output_path, 'wb') as f:
             f.write(full_data)
@@ -278,7 +278,12 @@ def decrypt_file(input_path):
         )
 
         original_data = remove_padding(padded_data)
-        output_filename = os.path.basename(input_path).replace('.enc', '') + '.decrypted'
+        base_name = os.path.basename(input_path)
+        if base_name.endswith('.femboycrypt'):
+            base_name = base_name[: -len('.femboycrypt')]
+        elif base_name.endswith('.enc'):
+            base_name = base_name[: -len('.enc')]
+        output_filename = base_name + '.decrypted'
         output_path = os.path.join('decrypted', output_filename)
         with open(output_path, 'wb') as f:
             f.write(original_data)
@@ -291,20 +296,80 @@ def decrypt_file(input_path):
         print(f"\n{ERROR}✖ Decryption failed:{Fore.WHITE} {str(e)}")
         sys.exit(1)
 
+
+def prompt_user_action():
+    print(
+        f"{INFO}No CLI arguments detected — switching to interactive mode.{Style.RESET_ALL}"
+    )
+    while True:
+        try:
+            choice = input(
+                f"{PRIMARY}Choose action [{Fore.WHITE}encrypt{PRIMARY}/{Fore.WHITE}decrypt{PRIMARY}]: "
+                f"{Style.RESET_ALL}"
+            )
+        except (EOFError, KeyboardInterrupt):
+            print(f"\n{ERROR}Operation cancelled by user.")
+            sys.exit(1)
+
+        if not choice:
+            print(f"{ERROR}Please enter 'encrypt' or 'decrypt'.")
+            continue
+
+        choice = choice.strip().lower()
+        if choice in ("encrypt", "e"):
+            return "-e"
+        if choice in ("decrypt", "d"):
+            return "-d"
+
+        print(f"{ERROR}Unrecognized option '{choice}'. Please choose encrypt or decrypt.")
+
+
+def prompt_file_path(action):
+    verb = "encrypt" if action == "-e" else "decrypt"
+    while True:
+        try:
+            path = input(
+                f"{PRIMARY}Enter the file path to {verb}:{Fore.WHITE} "
+                f"{Style.RESET_ALL}"
+            )
+        except (EOFError, KeyboardInterrupt):
+            print(f"\n{ERROR}Operation cancelled by user.")
+            sys.exit(1)
+
+        path = path.strip().strip('"').strip("'")
+        if not path:
+            print(f"{ERROR}File path cannot be empty. Please try again.")
+            continue
+
+        if os.path.isfile(path):
+            if action == "-d" and not path.lower().endswith('.femboycrypt'):
+                print(
+                    f"{INFO}Note:{Fore.WHITE} The expected encrypted extension is "
+                    f".femboycrypt, but proceeding with the provided file.{Style.RESET_ALL}"
+                )
+            return path
+
+        print(f"{ERROR}File not found:{Fore.WHITE} {path}. Please try again.")
+
+
 if __name__ == "__main__":
     clear_screen()
     print_header()
     create_directories()
 
-    if len(sys.argv) != 3 or sys.argv[1] not in ['-e', '-d']:
+    if len(sys.argv) == 3 and sys.argv[1] in ['-e', '-d']:
+        action = sys.argv[1]
+        file_path = sys.argv[2]
+    elif len(sys.argv) == 1:
+        action = prompt_user_action()
+        file_path = prompt_file_path(action)
+    else:
         print(
             f"{INFO}Usage:{Fore.WHITE} python encrypt.py "
             f"{PRIMARY}-e{Fore.WHITE}/{PRIMARY}-d {Fore.WHITE}[file]"
         )
+        print(f"{INFO}Tip:{Fore.WHITE} Run without any arguments for interactive mode.")
         sys.exit(1)
-
-    action = sys.argv[1]
-    file_path = sys.argv[2]
 
     if action == '-e':
         encrypt_file(file_path)
