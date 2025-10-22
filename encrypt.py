@@ -5,24 +5,76 @@ import struct
 import hashlib
 import random
 from shutil import get_terminal_size
-from tqdm import tqdm
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.ciphers.algorithms import ChaCha20
 from colorama import init, Fore, Style
 init(autoreset=True)
 
-BANNER = fr"""
-{Fore.CYAN}$$$$$$$\\   $$\\     $$\\ $$$$$$$$\\  $$$$$$\\  
-$$  __$$\\  $$ |    $$ |\\__$$  __|$$  __$$\\ 
-$$ |  $$ | $$ |    $$ |   $$ |   $$ /  \\__|
-$$$$$$$  | $$ |    $$ |   $$ |   \\$$$$$$\\  
-$$  ____/  $$ |    $$ |   $$ |    \\____$$\\ 
-$$ |       $$ |    $$ |   $$ |   $$\\   $$ |
-$$ |       \\$$$$$$$  |   $$ |   \\$$$$$$  |
-\\__|        \\_______/    \\__|    \\______/
-{Fore.GREEN}Advanced File Encryption v3.0{Style.RESET_ALL}
-"""
+ACCENT = Style.BRIGHT + Fore.MAGENTA
+PRIMARY = Style.BRIGHT + Fore.CYAN
+SUCCESS = Style.BRIGHT + Fore.GREEN
+ERROR = Style.BRIGHT + Fore.RED
+INFO = Style.BRIGHT + Fore.YELLOW
+MUTED = Style.DIM + Fore.WHITE
+
+BANNER_COLORS = [Fore.MAGENTA, Fore.CYAN, Fore.BLUE, Fore.MAGENTA, Fore.CYAN]
+
+BANNER_ART = """⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡘⢧⡀⠀⠀⢰⣶⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡾⠁⠀⠙⢦⡀⢸⡏⠻⢦⣀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⣣⡆⠀⠀⠀⠙⠺⡇⠀⠀⠙⠳⠦⡀⠀⠀⠀⠀⠀⠀⠀⣀⣀⣀⣠⠤⢤⣀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣿⡇⠀⠿⠒⠦⠴⠒⠓⠂⠀⠀⠀⠀⠀⠐⠒⠚⠛⠋⠉⠉⠉⠁⠀⠀⠀⠀⠉⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣿⠛⢦⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣴⠃⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣿⠀⠀⠙⠛⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢠⣏⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣿⠀⠀⠀⠀⠀⢀⣠⣄⡀⠀⠀⠀⠀⢀⣠⣤⣤⣀⠀⠀⠀⠀⠀⠀⠀⠀⣸⠇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠘⠃⠀⠀⠀⣰⠏⢉⣼⣧⠀⠀⠀⢠⣿⣅⠀⠀⢹⡆⠀⠀⠀⠀⠀⠀⢠⡏⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡯⠀⢸⣿⣿⠀⠀⠀⣾⣿⣿⠀⠀⠀⣷⠀⠀⠀⠀⠀⢀⡞⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⡴⠛⠁⢀⠈⠁⠀⢸⣿⣿⠀⠀⠀⢹⣿⣿⠀⠀⠀⠉⠀⠀⠀⠈⠛⢿⡅⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⢿⡀⠀⠀⢸⣧⣴⣀⣄⠉⣁⠐⣳⢀⣨⣟⠋⠀⠀⣀⣴⣠⠀⠀⠀⢀⡼⠃⠀⠀⠀⢰⣤⣀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠉⠛⢶⡎⢳⣌⡉⠀⠀⠙⠻⣯⣉⢉⣿⠄⠀⠀⢉⣬⡿⠃⠀⠀⢾⡀⠀⠀⠀⠀⣸⠃⠙⠳⣤⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⣇⣀⡈⠙⠛⢳⡶⣤⣤⣭⣽⣭⡴⣶⠛⣿⣥⡄⢠⣤⣤⣼⡇⠀⡄⣾⠀⣿⠀⠀⠀⠀⠙⢦⡄⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⢰⡟⠛⠺⠷⢤⣤⣿⣿⣿⣤⡾⠟⣃⡿⠀⠀⠀⠀⠀⠀⠘⠃⡿⢀⡗⠀⠀⠀⠀⠀⠈⢻⣆⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢻⣆⠀⠀⠀⢸⣏⣌⡙⡇⠀⠀⠺⣦⠀⠀⠀⠀⠀⠀⣼⣄⠀⢸⡇⠀⠀⠀⠀⠀⠀⠀⠹⣇⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢙⣷⠀⠀⠀⠛⠛⠛⠁⠀⠀⣾⠁⠀⠀⠀⠀⠀⢰⡟⢹⣆⡿⠀⠀⠀⠀⠀⠀⠀⠀⠀⠹⣆⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢰⡏⠁⠀⠀⠀⠀⣤⠀⠀⠀⢰⣾⠀⠀⠀⠀⠀⣠⡟⠀⠀⠿⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢿⡀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠉⡟⠛⠛⠀⣠⡟⠀⠀⠀⢸⢹⡄⠀⠀⢀⡴⠋⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠸⡇⣿⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣿⠀⠀⠀⣿⡇⠀⠀⠀⢸⠸⣇⣀⡴⠋⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡇⢻⠀⡄
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣰⣿⠀⠀⠀⣿⠀⠀⠀⠀⣿⠀⠻⣏⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⡇⢼⣰⡇
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡶⠶⠛⠋⣿⠀⠀⢠⡏⠀⠀⠀⠀⡿⠀⠀⠙⢷⣄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣼⢁⡿⠾⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣠⣤⠿⠀⠀⠀⣿⠀⠀⣸⠃⠀⠀⠀⢠⡏⠀⠀⠀⠀⢹⡷⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣠⠟⠈⠁⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠰⣟⠁⠀⠀⠀⠀⢶⣿⠀⢠⡟⠀⠀⠀⠀⢸⠅⠀⠀⠀⠀⢻⡆⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣠⡾⠋⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⡾⠃⠀⠀⠀⠀⠘⣿⢀⡾⠁⠀⠀⠀⠀⣿⠀⠀⠀⠀⣴⠟⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠉⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⢀⣴⠿⢦⣄⡀⠀⠀⠀⠀⡏⣼⠃⠀⠀⠀⠀⢀⡿⠀⠀⠀⠀⢹⡇⠀⠀⠀⠀⠀⠀⠀⠀⢠⣄⣀⣀⣀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⢀⣴⠟⠓⠤⡀⠈⠹⣦⡀⠀⠐⣷⣷⡇⠀⢠⡄⠀⣼⣃⣀⣀⣀⠀⠀⡇⠀⠀⠀⠲⣄⡀⠀⠀⠀⣈⡽⠟⠋⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⣠⠿⠅⣀⠀⠀⠈⠳⡄⠸⣧⠀⣠⡿⠿⢷⢤⣬⣿⡾⠛⠉⠉⠉⠉⠷⣴⡇⠀⠀⠀⠀⠈⠙⠛⠛⠛⠉⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⣠⡾⢁⡀⠀⠀⠑⢄⠀⠀⠸⣄⣿⠟⠉⠀⠀⠀⠀⠀⢸⣇⠤⠤⠦⠤⠤⢀⣹⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⢀⣴⠋⠀⠀⠈⠑⢄⠀⠀⢣⠀⣠⡟⠁⠀⠀⠀⠀⠀⠀⠀⢸⠇⠀⠀⠀⠀⠀⠀⠉⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⢰⡏⣴⠉⠑⣢⣄⠀⠀⢳⣀⣴⠟⠉⠀⠀⠀⠀⠀⠀⠀⠀⠀⣸⡀⠀⠀⠀⠀⠀⠀⠀⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠈⠿⣏⠀⠀⢿⠀⣳⣤⡶⠛⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣿⣀⣀⡀⠀⠀⠀⠀⢹⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠋⠙⠛⠛⠛⠉⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣿⠀⠀⠀⠀⠉⠓⠢⣼⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣿⣀⠀⣀⣀⡀⠀⣸⡟⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⣿⢰⡇⠀⠀⢿⢑⡿⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⢿⣷⣀⣤⣼⡿⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀"""
+
+
+def terminal_width():
+    size = get_terminal_size((100, 20))
+    return size.columns if hasattr(size, "columns") else size[0]
+
+
+def print_divider(color=Fore.CYAN, pattern="═"):
+    width = terminal_width()
+    print(f"{Style.BRIGHT}{color}{pattern * width}{Style.RESET_ALL}")
+
+
+def render_banner():
+    lines = BANNER_ART.splitlines()
+    colored_lines = []
+    for idx, line in enumerate(lines):
+        color = BANNER_COLORS[idx % len(BANNER_COLORS)]
+        colored_lines.append(f"{Style.BRIGHT}{color}{line}{Style.RESET_ALL}")
+    return "\n".join(colored_lines)
 
 def clear_screen():
     if os.name == "posix":
@@ -30,18 +82,29 @@ def clear_screen():
     elif os.name in ("nt", "dos", "ce"):
         os.system("cls")
 
+
 def print_header():
-    cols, _ = get_terminal_size()
-    print("\n" + "=" * cols)
-    print(BANNER)
-    print(f"{Fore.YELLOW}System Time: {time.strftime('%Y-%m-%d %H:%M:%S')}")
-    print("=" * cols + "\n")
+    print()
+    print_divider(Fore.MAGENTA)
+    print(render_banner())
+    print_divider(Fore.MAGENTA)
+    print(
+        f"{PRIMARY}MaggiCrypt CLI  {Fore.WHITE}•  {INFO}System Time:"
+        f" {Fore.WHITE}{time.strftime('%Y-%m-%d %H:%M:%S')}"
+    )
+    print(
+        f"{MUTED}Multi-layer AES + ChaCha20 protection · Use -e to encrypt,"
+        f" -d to decrypt"
+    )
+    print_divider(Fore.MAGENTA)
+    print()
 
 def create_directories():
     dirs = ['encrypted', 'decrypted']
     for d in dirs:
         os.makedirs(d, exist_ok=True)
-    print(f"{Fore.MAGENTA}» Directory check: {dirs} ready")
+    directory_status = ', '.join(dirs)
+    print(f"{ACCENT}⟡ Directories ready:{Fore.WHITE} {directory_status}")
 
 def transform_key(base_key):
     hash_key = hashlib.sha512(base_key).digest()
@@ -96,7 +159,7 @@ def deobfuscate_data(data, r):
 
 def check_debugger():
     if sys.gettrace():
-        print(f"{Fore.RED}Debugger detected! Exiting.")
+        print(f"{ERROR}Debugger detected! Exiting.")
         sys.exit(1)
 
 def encrypt_file(input_path):
@@ -106,8 +169,8 @@ def encrypt_file(input_path):
         import sys as sys_module
 
         check_debugger()
-        print(f"\n{Fore.WHITE}[{Fore.BLUE}ENCRYPTION PROCESS{Fore.WHITE}]")
-        print("-" * get_terminal_size().columns)
+        print(f"\n{PRIMARY}⚙  Encryption Process Initiated")
+        print_divider(Fore.CYAN, pattern="─")
 
         # Spinner animation setup
         spinner_running = True
@@ -116,10 +179,12 @@ def encrypt_file(input_path):
             for c in itertools.cycle(['|', '/', '-', '\\']):
                 if not spinner_running:
                     break
-                sys_module.stdout.write(f'\r{Fore.CYAN}Encrypting... {c}')
+                sys_module.stdout.write(
+                    f"\r{PRIMARY}Encrypting {Fore.WHITE}✶ {Fore.CYAN}{c}{Style.RESET_ALL}  "
+                )
                 sys_module.stdout.flush()
                 time.sleep(0.1)
-            sys_module.stdout.write('\r' + ' ' * 20 + '\r')
+            sys_module.stdout.write('\r' + ' ' * 40 + '\r')
 
         spinner_thread = threading.Thread(target=spinner)
         spinner_thread.start()
@@ -169,19 +234,19 @@ def encrypt_file(input_path):
         with open(output_path, 'wb') as f:
             f.write(full_data)
 
-        print(f"\n{Fore.GREEN}✅ ENCRYPTION COMPLETE: {output_path}")
-        print("=" * get_terminal_size().columns)
+        print(f"\n{SUCCESS}✔ Encryption complete!{Fore.WHITE} Saved to {output_path}")
+        print_divider(Fore.CYAN)
         return output_path
 
     except Exception as e:
-        print(f"\n{Fore.RED}❌ ENCRYPTION FAILED: {str(e)}")
+        print(f"\n{ERROR}✖ Encryption failed:{Fore.WHITE} {str(e)}")
         sys.exit(1)
 
 def decrypt_file(input_path):
     try:
         check_debugger()
-        print(f"\n{Fore.WHITE}[{Fore.BLUE}DECRYPTION PROCESS{Fore.WHITE}]")
-        print("-" * get_terminal_size().columns)
+        print(f"\n{PRIMARY}🔐  Decryption Process Initiated")
+        print_divider(Fore.CYAN, pattern="─")
 
         with open(input_path, 'rb') as f:
             full_data = f.read()
@@ -218,12 +283,12 @@ def decrypt_file(input_path):
         with open(output_path, 'wb') as f:
             f.write(original_data)
 
-        print(f"\n{Fore.GREEN}✅ DECRYPTION COMPLETE: {output_path}")
-        print("=" * get_terminal_size().columns)
+        print(f"\n{SUCCESS}✔ Decryption complete!{Fore.WHITE} File restored at {output_path}")
+        print_divider(Fore.CYAN)
         return output_path
 
     except Exception as e:
-        print(f"\n{Fore.RED}❌ DECRYPTION FAILED: {str(e)}")
+        print(f"\n{ERROR}✖ Decryption failed:{Fore.WHITE} {str(e)}")
         sys.exit(1)
 
 if __name__ == "__main__":
@@ -232,7 +297,10 @@ if __name__ == "__main__":
     create_directories()
 
     if len(sys.argv) != 3 or sys.argv[1] not in ['-e', '-d']:
-        print(f"{Fore.YELLOW}Usage: python encrypter.py -e [file] | -d [file]")
+        print(
+            f"{INFO}Usage:{Fore.WHITE} python encrypt.py "
+            f"{PRIMARY}-e{Fore.WHITE}/{PRIMARY}-d {Fore.WHITE}[file]"
+        )
         sys.exit(1)
 
     action = sys.argv[1]
